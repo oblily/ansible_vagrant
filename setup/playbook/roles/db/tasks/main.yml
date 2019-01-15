@@ -1,0 +1,7 @@
+---
+- import_tasks: yum-update.yml
+- import_tasks: ntp.yml
+- import_tasks: mysql.yml
+- import_tasks: firewalld.yml
+- import_tasks: redis.yml
+- import_tasks: selinux.yml

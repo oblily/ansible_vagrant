@@ -1,0 +1,16 @@
+---
+- name: be sure yum packages are latest.
+  yum:
+    name: "*"
+    state: latest
+  tags: yum
+
+- name: be sure tools are installed.
+  yum:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - net-tools
+  tags:
+    - yum
+    - net-tools

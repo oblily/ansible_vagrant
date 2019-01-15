@@ -1,0 +1,6 @@
+---
+- name: be sure ntp is installed.
+  yum:
+    name: ntp
+    state: latest
+  tags: ntp

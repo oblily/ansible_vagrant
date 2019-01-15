@@ -1,0 +1,97 @@
+---
+- name: be sure mysql repository is installed.
+  yum:
+    name: http://dev.mysql.com/get/mysql57-community-release-el7-7.noarch.rpm
+    state: installed
+  tags: mysql
+
+- name: be sure mysql is installed.
+  yum:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - mysql-community-server
+    - MySQL-python
+  tags: mysql
+
+- name: be sure mysqld is started and enabled.
+  service:
+    name: mysqld
+    state: started
+    enabled: yes
+  notify: restart firewalld
+  tags: mysql
+
+- name: get status of mysql temporary password.
+  stat:
+    path: ~/.mysql_temporary_password
+  register: temporary_password_file
+  tags: mysql
+
+- name: get initial(temporary) password if nessesary.
+  shell: grep 'A temporary password' /var/log/mysqld.log | awk '{print $11}'
+  register: temporary_password
+  changed_when: false
+  tags: mysql
+
+- name: mark temporary password is used.
+  shell: echo "{{ temporary_password.stdout_lines[0] }}" > ~/.mysql_temporary_password
+  args:
+    creates: ~/.mysql_temporary_password
+  tags: mysql
+
+#TEMP_PASS=`sudo grep 'temporary password' /var/log/mysqld.log | sed -e "s/.*root@localhost: //"`
+#UPDATE_SQL="SET PASSWORD FOR root@localhost=PASSWORD('newpassword');"
+#
+#mysql -u root -p"${TEMP_PASS}" -e "${UPDATE_SQL}" --connect-expired-password
+
+- name: change password of mysql root.
+  shell: mysql -u root -p"{{ temporary_password.stdout_lines[0] }}" -e "set password for root@localhost=password('{{ temporary_password.stdout_lines[0] }}');SET GLOBAL validate_password_policy=LOW"  --connect-expired-password
+  changed_when: false
+  tags: mysql
+
+- name: be sure mysql user is exist.
+  mysql_user:
+    login_user: root
+    login_password: "{{ temporary_password.stdout_lines[0] }}"
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    priv: "*.*:ALL"
+    host: "{{ item.host }}"
+    state: present
+  with_items:
+    - { name: "{{ database.username }}", password: "{{ database.password }}", host: "%" }
+    - { name: "{{ database.username }}", password: "{{ database.password }}", host: localhost }
+  tags: mysql
+
+- name: be sure database is exist.
+  mysql_db:
+    login_user: "{{ database.username }}"
+    login_password: "{{ database.password }}"
+    name: "{{ database.dbname }}"
+    encoding: utf8
+  tags: mysql
+
+- name: be sure sql files are copied.
+  copy:
+    src: "./"
+    dest: /tmp
+  tags: mysql,sql
+
+- name: "[debug] extra-vars for import dml and ddl."
+  debug:
+    var: import_enable
+  tags: mysql,sql
+
+- name: be sure tables are imported.
+  mysql_db:
+    state: import
+    login_user: "{{ database.username }}"
+    login_password: "{{ database.password }}"
+    name: "{{ database.dbname }}"
+    target: "/tmp/{{ item }}"
+  when: import_enable == true
+  with_items:
+    - ddl.sql
+    - dml.sql
+  tags: mysql,sql

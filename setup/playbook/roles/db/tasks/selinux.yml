@@ -1,0 +1,5 @@
+---
+- name: be sure selinux is disabled.
+  selinux:
+    state: disabled
+  tags: selinux

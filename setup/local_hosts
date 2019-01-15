@@ -1,0 +1,12 @@
+[localhosts]
+localhost
+
+[local:children]
+localhosts
+
+[all:vars]
+ansible_ssh_user=vagrant
+ansible_ssh_private_key_file=~/.ssh/id_rsa_ansible
+
+[ssh_connection]
+scp_if_ssh=True

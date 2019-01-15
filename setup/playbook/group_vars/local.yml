@@ -1,0 +1,10 @@
+---
+database:
+  username: test
+  password: 12345ABC6789
+  dbname: sample_db
+
+redis:
+  password: 12345ABC6789
+
+import_enable: false

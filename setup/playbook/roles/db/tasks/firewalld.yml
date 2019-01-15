@@ -1,0 +1,19 @@
+---
+- name: allow port/tcp
+  firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+  with_items:
+    - 3306/tcp
+    - 6379/tcp
+  notify: restart firewalld
+  tags: firewalld
+
+- name: allow port 80
+  firewalld:
+    service: http
+    permanent: true
+    state: enabled
+  notify: restart firewalld
+  tags: firewalld
